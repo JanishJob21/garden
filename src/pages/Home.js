@@ -69,9 +69,15 @@ export default function Home() {
       <footer className="footer">
         <div>© {new Date().getFullYear()} Community Garden</div>
         <div className="social">
-          <a href="#" aria-label="Twitter">Twitter</a>
-          <a href="#" aria-label="Instagram">Instagram</a>
-          <a href="#" aria-label="GitHub">GitHub</a>
+          <button type="button" className="social-link" onClick={() => window.open('https://twitter.com', '_blank', 'noopener,noreferrer')}>
+            Twitter
+          </button>
+          <button type="button" className="social-link" onClick={() => window.open('https://instagram.com', '_blank', 'noopener,noreferrer')}>
+            Instagram
+          </button>
+          <button type="button" className="social-link" onClick={() => window.open('https://github.com', '_blank', 'noopener,noreferrer')}>
+            GitHub
+          </button>
         </div>
       </footer>
     </div>

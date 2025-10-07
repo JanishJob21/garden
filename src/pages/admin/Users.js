@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { usersList, usersUpdateRole } from '../../services/api'
+import { usersList } from '../../services/api'
 import { IconSearch, IconRefresh } from '../../components/Icons'
 
 export default function Users() {
@@ -20,12 +20,13 @@ export default function Users() {
     })()
   }, [])
 
-  const change = async (id, role) => {
-    try {
-      const { user } = await usersUpdateRole(id, role.toLowerCase())
-      setUsers(prev => prev.map(u => u._id===user._id || u.id===user.id ? { ...user, role: (user.role || '').charAt(0).toUpperCase() + (user.role || '').slice(1) } : u))
-    } catch (e) { setErr(e.message) }
-  }
+  // Role change handler - currently not used
+  // const change = async (id, role) => {
+  //   try {
+  //     const { user } = await usersUpdateRole(id, role.toLowerCase())
+  //     setUsers(prev => prev.map(u => u._id===user._id || u.id===user.id ? { ...user, role: (user.role || '').charAt(0).toUpperCase() + (user.role || '').slice(1) } : u))
+  //   } catch (e) { setErr(e.message) }
+  // }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()

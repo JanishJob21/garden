@@ -1,30 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  usersList,
-  sessionsList,
-  sessionsSummary
-} from '../../services/api';
+import { usersList, sessionsList, sessionsSummary } from '../../services/api';
 import { 
   IconUsers as UsersIcon, 
   IconCalendar as CalendarIcon, 
-  IconTools as ToolsIcon, 
+  IconTools as ToolsIcon,
   IconRefresh as RefreshIcon
 } from '../../components/Icons';
-import '../../styles/dashboard.css';
-
-// Helper function to format relative time
-const formatRelativeTime = (dateString) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  return date.toLocaleDateString();
-};
 
 const MetricCard = ({ icon, title, value = 0, change, isIncrease }) => (
   <div className="metric-card">
@@ -117,7 +98,7 @@ export default function AdminDashboard() {
           // Calculate session status and timestamps
           const loginTime = session.loginAt ? new Date(session.loginAt) : new Date(session.createdAt || new Date());
           const logoutTime = session.logoutAt ? new Date(session.logoutAt) : null;
-          const isActive = status === 'Active' && !logoutTime;
+          // Status is determined by the session status
           
           // Calculate duration in seconds
           const endTime = logoutTime || new Date();
@@ -143,26 +124,19 @@ export default function AdminDashboard() {
             rawData: session // Keep original data for debugging
           };
         } catch (error) {
-          console.error('Error processing session:', error, session);
+          console.error('Error processing session:', error);
           return null;
         }
       });
       
-      // Filter out any null sessions and sort by login time in descending order (newest first)
-      const validSessions = formattedSessions
-        .filter(session => session !== null)
-        .sort((a, b) => new Date(b.loginAt) - new Date(a.loginAt));
-
-      // Log the processed sessions for debugging
-      console.log('Processed sessions:', validSessions);
-      
+      // Filter out any null values from failed session processing
+      const validSessions = formattedSessions.filter(session => session !== null);
       setRecentSessions(validSessions);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching sessions:', error);
+      setRecentSessions([]);
     }
-  }, []);
+  }, []); // Removed unnecessary dependencies
 
   useEffect(() => {
     fetchDashboardData();
@@ -251,21 +225,10 @@ export default function AdminDashboard() {
               {recentSessions.map((session) => {
                 if (!session) return null;
                 
-                const isActive = session.status === 'Active';
-                const role = session.role || 'member';
-                
-                // Format duration
-                const formatDuration = (seconds) => {
-                  if (seconds < 60) return `${seconds}s`;
-                  const minutes = Math.floor(seconds / 60);
-                  const remainingSeconds = seconds % 60;
-                  return `${minutes}m ${remainingSeconds}s`;
-                };
-
-                // Format date and time
-                const formatDateTime = (date) => {
-                  if (!date) return '-';
+                // Format date helper
+                const formatDate = (date) => {
                   try {
+                    if (!date) return '-';
                     const d = new Date(date);
                     return d.toLocaleString('en-US', {
                       month: 'short',
@@ -279,25 +242,11 @@ export default function AdminDashboard() {
                   }
                 };
 
-                // Get user display with role icon
-                const getUserDisplay = () => {
-                  let icon = '👤';
-                  if (role === 'admin') icon = '👑';
-                  else if (role === 'manager') icon = '👔';
-                  
-                  return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>{icon}</span>
-                      <span>{session.username}</span>
-                    </div>
-                  );
-                };
-
                 return (
                   <tr key={session.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '16px 24px' }}>{session.username}</td>
                     <td style={{ padding: '16px 24px' }}>{session.email}</td>
-                    <td style={{ padding: '16px 24px' }}>{formatDateTime(session.loginAt)}</td>
+                    <td style={{ padding: '16px 24px' }}>{formatDate(session.loginAt)}</td>
                     <td style={{ padding: '16px 24px' }}>
                       <span style={{
                         display: 'inline-flex',
@@ -306,12 +255,12 @@ export default function AdminDashboard() {
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
                         fontWeight: 500,
-                        backgroundColor: isActive ? '#dcfce7' : '#f3f4f6',
-                        color: isActive ? '#166534' : '#6b7280',
+                        backgroundColor: session.status === 'Active' ? '#dcfce7' : '#f3f4f6',
+                        color: session.status === 'Active' ? '#166534' : '#6b7280',
                         gap: '4px',
                         whiteSpace: 'nowrap'
                       }}>
-                        {isActive && (
+                        {session.status === 'Active' && (
                           <span style={{
                             display: 'inline-block',
                             width: '8px',
@@ -321,7 +270,7 @@ export default function AdminDashboard() {
                             animation: 'pulse 1.5s infinite'
                           }}></span>
                         )}
-                        {isActive ? 'Active Now' : 'Logged Out'}
+                        {session.status === 'Active' ? 'Active Now' : 'Logged Out'}
                       </span>
                     </td>
                   </tr>

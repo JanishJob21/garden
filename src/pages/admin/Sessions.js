@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sessionsList, sessionsDelete } from '../../services/api'
-import { IconSearch, IconRefresh, IconClear } from '../../components/Icons'
-import Breadcrumbs from '../../components/Breadcrumbs'
+import { IconSearch, IconRefresh } from '../../components/Icons'
 
 export default function Sessions() {
   const [items,setItems] = useState([])
@@ -10,7 +9,8 @@ export default function Sessions() {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('All')
   const [page, setPage] = useState(1)
-  const [deleting, setDeleting] = useState(null)
+  // State for tracking deletion status (commented out since it's not used)
+  const [, _setDeleting] = useState(null)
   const [selectedSessions, setSelectedSessions] = useState([])
   const pageSize = 10
 
@@ -44,41 +44,43 @@ export default function Sessions() {
   const clearFilters = () => {
     setQ('')
     setStatus('All')
-    setPage(1)
     load({ page: 1 })
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
-  const formatDur = (sec) => {
-    const m = Math.floor(sec/60), s = sec%60
-    if (m > 0) return `${m}m ${s}s`
-    return `${s}s`
-  }
+  // Format duration function (commented out since it's not used)
+  // const formatDur = (sec) => {
+  //   if (!sec) return '0s';
+  //   const h = Math.floor(sec / 3600);
+  //   const m = Math.floor((sec % 3600) / 60);
+  //   const s = Math.floor(sec % 60);
+  //   return [h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(' ');
+  // };
 
   const handleDelete = async (id) => {
     if (!id && selectedSessions.length === 0) {
-      setErr('Please select at least one session to delete')
-      return
+      setErr('Please select at least one session to delete');
+      return;
     }
 
-    const idsToDelete = id ? [id] : selectedSessions
-    const message = `Are you sure you want to delete ${idsToDelete.length} selected session(s)? This action cannot be undone.`
+    const idsToDelete = id ? [id] : selectedSessions;
+    const message = `Are you sure you want to delete ${idsToDelete.length} selected session(s)? This action cannot be undone.`;
     
     if (!window.confirm(message)) {
-      return
+      return;
     }
     
     try {
-      setDeleting(idsToDelete)
+      _setDeleting(idsToDelete);
       // Delete all selected sessions
-      await Promise.all(idsToDelete.map(sessionId => sessionsDelete(sessionId)))
+      await Promise.all(idsToDelete.map(sessionId => sessionsDelete(sessionId)));
       // Reload the sessions after successful deletion
-      load()
+      load();
     } catch (error) {
-      setErr(error.message || 'Failed to delete session(s)')
+      setErr(error.message || 'Failed to delete session(s)');
     } finally {
-      setDeleting(null)
+      _setDeleting(null);
     }
   }
 

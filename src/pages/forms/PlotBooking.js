@@ -9,7 +9,7 @@ import FormRow from '../../components/FormRow';
 export default function PlotBooking() {
   const plots = PlotsAPI.list()
   const nav = useNavigate()
-  const { user } = useAuth()
+  useAuth() // User context is not currently used
   const { values, setField, reset } = useAutosaveForm('draft_booking', {
     plotId: '', plotSize: '', startDate: '', endDate: '',
     cropType: '', wateringFreq: 'Daily', compost: 'No', irrigationSlot: '06:00',

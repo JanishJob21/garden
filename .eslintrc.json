@@ -1,0 +1,14 @@
+{
+  "extends": ["react-app", "react-app/jest"],
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "jsx-a11y/anchor-is-valid": ["error", {
+      "components": ["Link"],
+      "specialLink": ["to"]
+    }],
+    "import/no-anonymous-default-export": ["error", {
+      "allowObject": true,
+      "allowArrowFunction": true
+    }]
+  }
+}

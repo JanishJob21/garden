@@ -40,8 +40,10 @@ export const IconEye = (props) => (
   <svg {...base} {...props} viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
 );
 
-export default {
+const Icons = {
   IconDashboard, IconSessions, IconList, IconTools, IconFeedback, IconUsers,
   IconSearch, IconRefresh, IconClear, IconCalendar, IconArrowRight,
   IconEye,
 };
+
+export default Icons;
