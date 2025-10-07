@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import GoogleLoginButton from '../../components/GoogleLoginButton'
 
 export default function Login() {
   const [email,setEmail] = useState('')
@@ -31,6 +32,10 @@ export default function Login() {
         </div>
         <button className="btn">Login</button>
       </form>
+      
+      <div className="divider">or</div>
+      <GoogleLoginButton />
+      
       <div className="auth-footer">
         <Link to="/home" className="btn ghost">Back to Home</Link>
       </div>

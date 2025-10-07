@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authLogin, authRegister, authMe, setToken, getToken, authLogout } from '../services/api';
+import { authLogin, authRegister, authMe, setToken, getToken, authLogout, googleAuth } from '../services/api';
 
 const AuthContext = createContext(null)
 
@@ -45,6 +45,21 @@ export function AuthProvider({ children }) {
     setUser(normalized)
   }
 
+  const googleLogin = async (credential) => {
+    const { token, user } = await googleAuth({ credential });
+    setToken(token);
+    const normalized = { 
+      id: user._id || user.id, 
+      name: user.name, 
+      email: user.email, 
+      role: (user.role || '').charAt(0).toUpperCase() + (user.role || '').slice(1),
+      picture: user.picture || user.profilePicture
+    };
+    localStorage.setItem('gs_user', JSON.stringify(normalized));
+    setUser(normalized);
+    return normalized;
+  };
+
   const logout = async () => {
     try { await authLogout() } catch {}
     localStorage.removeItem('gs_user')
@@ -53,7 +68,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, googleLogin }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,19 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Community Garden Plot Scheduler - Manage your garden plots with ease"
-    />
+    <meta name="description" content="Community Garden Plot Scheduler - Manage your garden plots with ease" />
+    
+    <!-- Google Sign-In Configuration -->
+    <meta name="google-signin-client_id" content="576627779664-19c8ht8eo8iohm0jso25qjrhudrmqsfh.apps.googleusercontent.com">
+    <meta name="google-signin-scope" content="profile email">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Favicon and App Icons -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <style>
+      .g_id_signin {
+        margin: 10px 0;
+      }
+    </style>
+    
     <title>Garden Plot Scheduler</title>
   </head>
   <body>

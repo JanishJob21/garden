@@ -17,7 +17,12 @@ async function apiFetch(path, options = {}) {
   if (t) headers['Authorization'] = `Bearer ${t}`;
   
   try {
-    const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    const res = await fetch(`${API_BASE}${path}`, { 
+      ...options, 
+      headers,
+      credentials: 'include', // This is important for cookies/auth to work cross-origin
+      mode: 'cors', // Explicitly set CORS mode
+    });
     const responseData = await res.json().catch(() => ({}));
     
     if (!res.ok) {
@@ -68,6 +73,11 @@ export const authRegister = (payload) => apiFetch('/api/auth/register', {
 });
 
 export const authLogin = (payload) => apiFetch('/api/auth/login', {
+  method: 'POST',
+  body: JSON.stringify(payload),
+});
+
+export const googleAuth = (payload) => apiFetch('/api/auth/google', {
   method: 'POST',
   body: JSON.stringify(payload),
 });

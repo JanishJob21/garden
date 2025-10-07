@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { Admin } from '../models/Admin.js';
 import { Manager } from '../models/Manager.js';
 import { Member } from '../models/Member.js';
@@ -8,6 +9,17 @@ import { auth } from '../middleware/auth.js';
 import { Session } from '../models/Session.js';
 
 const router = Router();
+
+// Initialize Google OAuth client when needed
+const getGoogleClient = () => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth client configuration is missing. Please check your environment variables.');
+  }
+  return new OAuth2Client({
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET
+  });
+};
 
 const signToken = (user) => {
   const payload = { id: user._id, role: user.role };
@@ -34,35 +46,137 @@ const findUserByEmailAcross = async (email) => {
   return { user: null, role: null };
 };
 
-router.post(
-  '/register',
-  [
-    body('name').notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password min 6'),
-    body('role').notEmpty().isIn(['member', 'manager', 'admin']).withMessage('Invalid role'),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-    const { name, email, password, role } = req.body;
-    try {
-      const { user: found } = await findUserByEmailAcross(email);
-      if (found) return res.status(409).json({ message: 'Email already in use' });
-      const Model = getModelByRole(role);
-      const created = await Model.create({ name, email, password });
-      const token = signToken({ _id: created._id, role });
-      res.status(201).json({ token, user: { id: created._id, name: created.name, email: created.email, role } });
-    } catch (err) {
-      res.status(500).json({ message: 'Server error' });
+// Google OAuth endpoint
+router.post('/google', async (req, res) => {
+  try {
+    console.log('Google auth request received');
+    const { credential } = req.body;
+    
+    if (!credential) {
+      console.error('No credential provided in request');
+      return res.status(400).json({ 
+        success: false,
+        message: 'No credential provided' 
+      });
     }
-  }
-);
+    
+    const client = getGoogleClient();
+    
+    // Verify the Google ID token
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new Error('Invalid token payload');
+    }
+    
+    const { name, email, picture, sub: googleId } = payload;
+    console.log('Google user authenticated:', { email, name });
+    if (!email) {
+      throw new Error('No email in Google token');
+    }
+    
+    // Check if user exists with this email
+    const { user: existingUser, role: existingRole } = await findUserByEmailAcross(email) || {};
+    
+    if (existingUser) {
+      // User exists, update Google ID if not set
+      if (!existingUser.googleId) {
+        existingUser.googleId = googleId;
+        await existingUser.save();
+      }
+      
+      // Generate token
+      const token = signToken({ _id: existingUser._id, role: existingRole });
+      
+      // Create session
+      await Session.create({ 
+        userId: existingUser._id,
+        username: existingUser.name,
+        email: existingUser.email,
+        loginAt: new Date(),
+        status: 'Active',
+        authMethod: 'google'
+      });
+      
+      return res.json({
+        success: true,
+        token,
+        user: {
+          _id: existingUser._id,
+          name: existingUser.name,
+          email: existingUser.email,
+          role: existingRole,
+          profilePicture: existingUser.profilePicture || picture
+        }
+      });
+    }
+    
+    // User doesn't exist, create new member
+    const newMember = new Member({
+      name,
+      email,
+      googleId,
+      phone: '',
+      address: '',
+      plotNumber: '',
+      joinDate: new Date(),
+      status: 'Active',
+      profilePicture: picture || ''
+    });
 
-router.post(
-  '/login',
-  [body('email').isEmail(), body('password').notEmpty()],
+    try {
+      await newMember.save();
+      console.log('New user created with Google OAuth:', { email, userId: newMember._id });
+      
+      // Generate token
+      const token = signToken({ _id: newMember._id, role: 'member' });
+      
+      // Create session
+      await Session.create({ 
+        userId: newMember._id,
+        username: newMember.name,
+        email: newMember.email,
+        loginAt: new Date(),
+        status: 'Active',
+        authMethod: 'google'
+      });
+      
+      return res.status(201).json({
+        success: true,
+        token,
+        user: {
+          _id: newMember._id,
+          name: newMember.name,
+          email: newMember.email,
+          role: 'member',
+          profilePicture: newMember.profilePicture
+        }
+      });
+    } catch (error) {
+      console.error('Error in creating new member:', error);
+      return res.status(500).json({ 
+        success: false,
+        message: error.message || 'Failed to create new member' 
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in Google OAuth:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: error.message || 'Authentication failed' 
+    });
+  }
+});
+
+// Login route
+router.post('/login', 
+  body('email').isEmail(), 
+  body('password').notEmpty(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
@@ -84,9 +198,22 @@ router.post(
           admin = await Admin.create({ name: 'Admin', email: ADMIN_EMAIL, password: ADMIN_PASS });
         }
         const token = signToken({ _id: admin._id, role: 'admin' });
-        // Create session
-        await Session.create({ userId: admin._id, username: admin.name, email: admin.email, loginAt: new Date(), status: 'Active' });
-        return res.json({ token, user: { id: admin._id, name: admin.name, email: admin.email, role: 'admin' } });
+        await Session.create({ 
+          userId: admin._id, 
+          username: admin.name, 
+          email: admin.email, 
+          loginAt: new Date(), 
+          status: 'Active' 
+        });
+        return res.json({ 
+          token, 
+          user: { 
+            id: admin._id, 
+            name: admin.name, 
+            email: admin.email, 
+            role: 'admin' 
+          } 
+        });
       }
 
       // Manager direct login
@@ -100,24 +227,56 @@ router.post(
           manager = await Manager.create({ name: 'Manager', email: MANAGER_EMAIL, password: MANAGER_PASS });
         }
         const token = signToken({ _id: manager._id, role: 'manager' });
-        await Session.create({ userId: manager._id, username: manager.name, email: manager.email, loginAt: new Date(), status: 'Active' });
-        return res.json({ token, user: { id: manager._id, name: manager.name, email: manager.email, role: 'manager' } });
+        await Session.create({ 
+          userId: manager._id, 
+          username: manager.name, 
+          email: manager.email, 
+          loginAt: new Date(), 
+          status: 'Active' 
+        });
+        return res.json({ 
+          token, 
+          user: { 
+            id: manager._id, 
+            name: manager.name, 
+            email: manager.email, 
+            role: 'manager' 
+          } 
+        });
       }
 
+      // Regular user login
       const { user, role } = await findUserByEmailAcross(email);
       if (!user) return res.status(401).json({ message: 'Invalid credentials' });
       const isMatch = await user.comparePassword(password);
       if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+      
       const token = signToken({ _id: user._id, role });
-      await Session.create({ userId: user._id, username: user.name, email: user.email, loginAt: new Date(), status: 'Active' });
-      res.json({ token, user: { id: user._id, name: user.name, email: user.email, role } });
+      await Session.create({ 
+        userId: user._id, 
+        username: user.name, 
+        email: user.email, 
+        loginAt: new Date(), 
+        status: 'Active' 
+      });
+      
+      res.json({ 
+        token, 
+        user: { 
+          id: user._id, 
+          name: user.name, 
+          email: user.email, 
+          role,
+          picture: user.picture
+        } 
+      });
     } catch (err) {
       res.status(500).json({ message: 'Server error' });
     }
   }
 );
 
-// Logout: closes the latest active session for the current user
+// Logout route
 router.post('/logout', auth, async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -128,9 +287,12 @@ router.post('/logout', auth, async (req, res) => {
       await active.save();
     }
     return res.json({ ok: true });
-  } catch (e) { return res.status(500).json({ message: 'Server error' }); }
+  } catch (e) { 
+    return res.status(500).json({ message: 'Server error' }); 
+  }
 });
 
+// Get current user
 router.get('/me', auth, async (req, res) => {
   res.json({ user: req.user });
 });
