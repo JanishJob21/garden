@@ -15,10 +15,10 @@ export default function NavBar() {
             {/* Member user-facing links */}
             {user.role === 'Member' && (
               <>
-                <NavLink to="/form/register">Register</NavLink>
-                <NavLink to="/form/booking">Book Plot</NavLink>
-                <NavLink to="/form/confirm-tools">Tools</NavLink>
-                <NavLink to="/form/feedback">Feedback</NavLink>
+                <NavLink to="/member-registration">Register</NavLink>
+                <NavLink to="/book-plot">Book Plot</NavLink>
+                <NavLink to="/tools">Tools</NavLink>
+                <NavLink to="/feedback">Feedback</NavLink>
                 <NavLink to="/my-bookings">My Bookings</NavLink>
               </>
             )}

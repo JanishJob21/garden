@@ -13,8 +13,10 @@ import ManagerDashboard from './pages/manager/ManagerDashboard';
 // Forms
 import MemberRegistration from './pages/forms/MemberRegistration';
 import PlotBooking from './pages/forms/PlotBooking';
+import BookPlot from './pages/forms/BookPlot';
 import ConfirmationTools from './pages/forms/ConfirmationTools';
 import FeedbackMaintenance from './pages/forms/FeedbackMaintenance';
+import BookingSuccess from './pages/SuccessPage';
 
 // Role pages
 import Approvals from './pages/manager/Approvals';
@@ -43,6 +45,8 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/member-registration" element={<MemberRegistration />} />
               <Route path="/book-plot" element={<PlotBooking />} />
+              <Route path="/book-plot/:plotId" element={<BookPlot />} />
+              <Route path="/booking-success" element={<BookingSuccess />} />
               <Route path="/tools" element={<ConfirmationTools />} />
               <Route path="/feedback" element={<FeedbackMaintenance />} />
               

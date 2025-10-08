@@ -1,5 +1,7 @@
-// Simple API client with token support and CRA proxy to http://localhost:4000
-const API_BASE = ''; // CRA proxy handles /api/* to backend
+// API client with token support
+const API_BASE = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:4000' 
+  : ''; // Use proxy in production
 
 let token = null;
 
@@ -93,7 +95,7 @@ export const usersUpdateRole = (id, role) => apiFetch(`/api/users/${id}/role`, {
 });
 
 // Registrations
-export const registrationsCreate = (payload) => apiFetch('/api/registrations', {
+export const registrationsCreate = (payload) => apiFetch('/api/registrations/', {
   method: 'POST',
   body: JSON.stringify(payload),
 });
